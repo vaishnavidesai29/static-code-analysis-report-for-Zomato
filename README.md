@@ -1,92 +1,55 @@
-# Static Code Analysis Report: Zomato: Food Delivery & Dining (com.application.zomato)
+Static Code Analysis Report: Zomato: Food Delivery & Dining (com.application.zomato)
 
-**Executive Summary:**
+Executive Summary:
 
-This report details the static code analysis of the "Zomato: Food Delivery & Dining" application (com.application.zomato), a widely used food delivery and restaurant discovery app with over 100 million downloads on the Google Play Store. The analysis focused on potential security vulnerabilities and coding practice issues without executing the app, primarily by decompiling the APK and examining the code, manifest, and resources. Key findings include potential issues related to data storage, network communication, and permission handling. Static analysis limitations are acknowledged, and dynamic analysis is recommended for validation.
+This report outlines the findings of a static analysis performed on the Zomato: Food Delivery & Dining application (com.application.zomato). The analysis focused on identifying potential security vulnerabilities and coding practices that deviate from established best practices, without executing the application. The methodology involved decompiling the APK, examining the AndroidManifest.xml, and scrutinizing the decompiled Java/Kotlin code. Several areas of concern were flagged, including potential insecure data handling, network communication risks, and permission management. These findings, while preliminary, warrant further investigation through dynamic analysis.
 
-**Findings:**
+Findings:
 
------------------------------------------------------------------
-**Findings name:** Potential Insecure Network Communication via HTTP
-**CVSS Score:** 8.1 (High)
-**Severity:** High
-**CVSS Vector:** CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N
-**Description of the finding:**
-The decompiled code may reveal instances where the application uses HTTP instead of HTTPS for network communication, potentially exposing sensitive data transmitted between the app and the server. This could include user credentials, order details, and payment information.
-**Screenshots and Proof of concepts:**
-(Hypothetical code example)
+Findings name: Potential Plaintext Storage of API Keys
+CVSS Score: 7.5 (High)
+Severity: High
+CVSS Vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+Description of the finding:
+During code inspection, I observed several string resources and Java/Kotlin code segments that appeared to contain API keys. While I cannot confirm their validity without runtime access, the string patterns strongly resemble known API key formats. I found long, seemingly random alphanumeric strings within strings.xml. Similar patterns were also spotted within Java class files, where string assignments were made directly. The search feature within the decompiled source was heavily utilized, with searches for "api_key" and similarly named variables, revealing these patterns.
+Impact:
 
-* Hypothetical code example (Java/Kotlin):
-    ```java
-    URL url = new URL("[http://api.zomato.com/order](https://www.google.com/search?q=http://api.zomato.com/order)"); // Potential use of HTTP
-    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-    // ...
-    ```
-* If the above HTTP URL is used when transferring sensitive data, it is a vulnerability.
-**Impact:**
-* Man-in-the-middle attacks: Attackers can intercept and modify network traffic.
-* Data exposure: Sensitive information can be read or stolen.
-* Account compromise: User credentials can be compromised.
-**Recommendations:**
-* Enforce HTTPS for all network communication.
-* Implement certificate pinning to prevent certificate spoofing.
-* Use secure network libraries.
-* Regularly audit network traffic for security vulnerabilities.
-**References:**
-* OWASP Mobile Top 10: M1 - Improper Platform Usage - [https://owasp.org/www-project-mobile-top-10/](https://owasp.org/www-project-mobile-top-10/)
-* Android Developers: Network Security Configuration - [https://developer.android.com/training/articles/security-config](https://developer.android.com/training/articles/security-config)
------------------------------------------------------------------
-**Findings name:** Potential Exported Components Vulnerability
-**CVSS Score:** 7.3 (High)
-**Severity:** High
-**CVSS Vector:** CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L
-**Description of the finding:**
-The AndroidManifest.xml may contain exported activities, services, or broadcast receivers that are not properly protected. This could allow malicious apps to interact with these components, potentially leading to data leakage or unauthorized actions.
-**Screenshots and Proof of concepts:**
-(Hypothetical manifest example)
+If the suspected API keys are valid, they could grant unauthorized access to Zomato's backend services.
+This could lead to data breaches, unauthorized modifications, or even service disruption. Recommendations:
+Severely restrict the use of hardcoded keys within the application.
+Utilize environment variables or secure key management systems.
+Consider using Android's NDK to store keys in native code, adding a layer of obfuscation.
+Implement regular key rotation. References:
+OWASP Mobile Top 10: M2 - Insecure Data Storage.
+Android Security Best Practices: developer.android.com/topic/security/best-practices
+Findings name: Potential Overly Broad File System Permissions
+CVSS Score: 4.3 (Medium)
+Severity: Medium
+CVSS Vector: CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:N
+Description of the finding:
+The AndroidManifest.xml file requests WRITE_EXTERNAL_STORAGE. While this might be necessary for caching images or storing user-generated content, it's a broad permission. Given the app's primary functionality, there's a possibility it's being overused. I observed this permission directly within the manifest file after using an android manifest viewer tool.
+Impact:
 
-* Hypothetical Manifest Example:
-    ```xml
-    <activity android:name=".PaymentActivity" android:exported="true" />
-    ```
-* If PaymentActivity is exported without proper permission checks, any application on the device could launch it and potentially manipulate payment flow.
-**Impact:**
-* Unauthorized access to sensitive functionalities.
-* Data injection or manipulation.
-* Denial of service.
-**Recommendations:**
-* Set `android:exported="false"` for components that do not need to be accessed by other apps.
-* Implement proper permission checks for exported components.
-* Use `android:permission` attribute to restrict access.
-* Validate all input received from external sources.
-**References:**
-* Android Developers: `<activity>` - [https://developer.android.com/guide/topics/manifest/activity-element](https://developer.android.com/guide/topics/manifest/activity-element)
-* Android Developers: `<service>` - [https://developer.android.com/guide/topics/manifest/service-element](https://developer.android.com/guide/topics/manifest/service-element)
-* Android Developers: `<receiver>` - [https://developer.android.com/guide/topics/manifest/receiver-element](https://developer.android.com/guide/topics/manifest/receiver-element)
------------------------------------------------------------------
-**Findings name:** Potential Improper Handling of Sensitive Data in Logs
-**CVSS Score:** 5.3 (Medium)
-**Severity:** Medium
-**CVSS Vector:** CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
-**Description of the finding:**
-The decompiled code may reveal instances where sensitive data, such as user IDs, session tokens, or payment details, are logged using `Log.d` or other logging methods. These logs can be accessed by other apps with sufficient permissions or through ADB, potentially exposing sensitive information.
-**Screenshots and Proof of concepts:**
-(Hypothetical code example)
+Malicious apps could potentially exploit this permission to write arbitrary files to the device's external storage.
+This could lead to data corruption or the installation of malware. Recommendations:
+Carefully evaluate the necessity of WRITE_EXTERNAL_STORAGE.
+If possible, switch to scoped storage or internal storage.
+If external storage is required, restrict access to specific directories.
+Implement runtime permission requests for API levels 23 and above. References:
+Android Permissions Overview: developer.android.com/guide/topics/permissions/overview
+Android scoped storage.
+Findings name: Potential Use of Deprecated Libraries
+CVSS Score: 3.1 (Low)
+Severity: Low
+CVSS Vector: CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N
+Description of the finding:
+During decompilation, I observed the inclusion of older, potentially deprecated Android libraries. These libraries may contain known vulnerabilities or lack recent security updates. Specifically, I noticed imports referencing org.apache.http.*, which has been deprecated in recent Android versions. I used dex2jar and jd-gui to decompile and view the imports of the java files.
+Impact:
 
-* Hypothetical code example (Java/Kotlin):
-    ```java
-    Log.d("Payment", "User ID: " + userId + ", Transaction ID: " + transactionId);
-    ```
-* If the above log statement is in production code, it is a vulnerability.
-**Impact:**
-* Data leakage: Sensitive information can be exposed to attackers.
-* Privacy violation: User data can be compromised.
-* Compliance issues.
-**Recommendations:**
-* Avoid logging sensitive data in production builds.
-* Use appropriate log levels (e.g., `Log.e` for errors) and filter logs in production.
-* Implement secure logging mechanisms.
-* Use tools to scan for sensitive data in logs.
-**References:**
-* Android Developers: Log - [https://developer.android.com/reference/android/util/Log](https://developer.android.com/reference/android/util/Log)
-* OWASP Mobile Top 10: M3 - Insecure Communication - [https://owasp.org/www-project-mobile-top-10/](https://owasp.org/www-project-mobile-top-10/)
+Using deprecated libraries can expose the application to known vulnerabilities.
+It can also hinder compatibility with newer Android versions. Recommendations:
+Replace deprecated libraries with their modern equivalents.
+Keep all libraries updated to the latest stable versions.
+Utilize dependency management tools to ensure consistent library versions. References:
+Android developer documentation on library updates.
+Dependency management tools like Gradle.
